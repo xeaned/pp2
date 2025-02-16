@@ -9,3 +9,7 @@ numbers = [int(input(f"Enter the number {i + 1}: ")) for i in range(count)]
 
 primes = list(filter(is_prime, numbers))
 print(primes)
+
+
+#primes = list(filter(lambda x: is_prime(x), numbers))
+#print("Prime numbers in the list:", primes)

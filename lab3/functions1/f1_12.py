@@ -1,5 +1,3 @@
-
-
 def histogram(list):
     for num in list:
         print('*' * num)
