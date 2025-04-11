@@ -10,16 +10,6 @@ pygame.init()
 WIDTH = 600
 HEIGHT = 600
 CELL = 30
-COLOR_OLIVE = (85, 107, 47)
-COLOR_BLACK = (0, 0, 0)
-COLOR_WHITE = (255, 255, 255)
-COLOR_GRAY = (200, 200, 200)
-COLOR_BLUE = (0, 0, 255)
-COLOR_LIGHTBLUE = (173, 216, 230)
-COLOR_GREEN = (0, 255, 0)
-COLOR_RED = (255, 0, 0)
-COLOR_PURPLE = (128, 0, 128)
-COLOR_YELLOW = (255, 255, 0)
 
 # Create display window
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -28,21 +18,12 @@ pygame.display.set_caption("Snake Game")
 # Set font for score and level display
 font = pygame.font.SysFont("Arial", 24)
 
+# Draw a checkerboard grid for the game background
 def draw_grid():
     colors = [(144, 238, 144), (60, 179, 113)]
     for i in range(HEIGHT // CELL):
         for j in range(WIDTH // CELL):
             pygame.draw.rect(screen, colors[(i + j) % 2], (i * CELL, j * CELL, CELL, CELL))
-
-coords_wall = [(10, 10), (11, 10), (10, 11), (11, 11)]
-collided_with_wall = False
-
-def draw_chess_board():
-    colors = [COLOR_GRAY, COLOR_WHITE]
-    for i in range(HEIGHT // CELL):
-        for j in range(WIDTH // CELL):
-            pygame.draw.rect(screen, colors[(i + j) % 2], (i * CELL, j * CELL, CELL, CELL))
-            
 
 # Class to represent a point (used for snake body and food)
 class Point:
@@ -62,8 +43,13 @@ class Snake:
         for i in range(len(self.body) - 1, 0, -1):
             self.body[i].x = self.body[i - 1].x
             self.body[i].y = self.body[i - 1].y
+
         self.body[0].x += self.dx
         self.body[0].y += self.dy
+
+        # Телепортация через стены
+        self.body[0].x %= WIDTH // CELL
+        self.body[0].y %= HEIGHT // CELL
 
     # Draw the snake segments and eyes
     def draw(self):
@@ -81,11 +67,6 @@ class Snake:
         head = self.body[0]
         return any(head.x == s.x and head.y == s.y for s in self.body[1:])
 
-    # Check if the snake hits the wall
-    def check_collision_with_walls(self):
-        head = self.body[0]
-        return head.x < 0 or head.x >= WIDTH // CELL or head.y < 0 or head.y >= HEIGHT // CELL
-
     # Check if the snake eats food
     def check_collision(self, food):
         head = self.body[0]
@@ -95,18 +76,6 @@ class Snake:
             food.generate_random_pos(self)
             return food.weight
         return 0
-
-    def check_collision_wall(self):
-        global collided_with_wall
-        head = self.body[0]
-        if head.x < 0 or head.x >= WIDTH // CELL or head.y < 0 or head.y >= HEIGHT // CELL:
-            collided_with_wall = True
-            return True
-        for coords in coords_wall:
-            if head.x == coords[0] and head.y == coords[1]:
-                collided_with_wall = True
-                return True
-        return False
 
 # Food class definition
 class Food:
@@ -187,8 +156,8 @@ while running:
     # Update snake position
     snake.move()
 
-    # Check for collisions (walls or self)
-    if snake.check_collision_with_self() or snake.check_collision_with_walls():
+    # Check for self-collision (no wall collision anymore)
+    if snake.check_collision_with_self():
         print("Game Over!")
         running = False
 

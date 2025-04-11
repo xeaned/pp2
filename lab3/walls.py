@@ -1,7 +1,6 @@
 import pygame
 import random
 import time
-import os
 
 # Initialize Pygame
 pygame.init()
@@ -10,17 +9,21 @@ pygame.init()
 WIDTH = 600
 HEIGHT = 600
 CELL = 30
+
+# Colors
 COLOR_OLIVE = (85, 107, 47)
 COLOR_BLACK = (0, 0, 0)
 COLOR_WHITE = (255, 255, 255)
 COLOR_GRAY = (200, 200, 200)
+COLOR_YELLOW = (255, 255, 0)
+COLOR_SNAKE = (70, 130, 180)
+COLOR_BLACK = (0, 0, 0)
 COLOR_BLUE = (0, 0, 255)
 COLOR_LIGHTBLUE = (173, 216, 230)
 COLOR_GREEN = (0, 255, 0)
 COLOR_RED = (255, 0, 0)
 COLOR_PURPLE = (128, 0, 128)
 COLOR_YELLOW = (255, 255, 0)
-
 # Create display window
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Snake Game")
@@ -28,36 +31,32 @@ pygame.display.set_caption("Snake Game")
 # Set font for score and level display
 font = pygame.font.SysFont("Arial", 24)
 
-def draw_grid():
+# Wall coordinates
+coords_wall = [(9, 9), (10, 9), (9, 10), (10, 10)]
+
+# Draw grid and wall blocks
+def draw_board_with_walls():
     colors = [(144, 238, 144), (60, 179, 113)]
     for i in range(HEIGHT // CELL):
         for j in range(WIDTH // CELL):
             pygame.draw.rect(screen, colors[(i + j) % 2], (i * CELL, j * CELL, CELL, CELL))
+            if (i, j) in coords_wall:
+                pygame.draw.rect(screen, COLOR_OLIVE, (i * CELL, j * CELL, CELL, CELL))
 
-coords_wall = [(10, 10), (11, 10), (10, 11), (11, 11)]
-collided_with_wall = False
-
-def draw_chess_board():
-    colors = [COLOR_GRAY, COLOR_WHITE]
-    for i in range(HEIGHT // CELL):
-        for j in range(WIDTH // CELL):
-            pygame.draw.rect(screen, colors[(i + j) % 2], (i * CELL, j * CELL, CELL, CELL))
-            
-
-# Class to represent a point (used for snake body and food)
+# Point class for snake and food
 class Point:
     def __init__(self, x, y):
         self.x = x
         self.y = y
 
-# Snake class definition
+# Snake class
 class Snake:
     def __init__(self):
-        self.body = [Point(10, 11), Point(10, 12), Point(10, 13)]  # Initial body segments
-        self.dx = 1  # Horizontal movement
-        self.dy = 0  # Vertical movement
+        self.body = [Point(5, 5), Point(5, 6), Point(5, 7)]
 
-    # Move the snake by updating the position of each segment
+        self.dx = 1
+        self.dy = 0
+
     def move(self):
         for i in range(len(self.body) - 1, 0, -1):
             self.body[i].x = self.body[i - 1].x
@@ -65,53 +64,41 @@ class Snake:
         self.body[0].x += self.dx
         self.body[0].y += self.dy
 
-    # Draw the snake segments and eyes
     def draw(self):
         head = self.body[0]
-        pygame.draw.rect(screen, (70, 130, 180), (head.x * CELL, head.y * CELL, CELL, CELL))
+        pygame.draw.rect(screen, COLOR_SNAKE, (head.x * CELL, head.y * CELL, CELL, CELL))
         eye_size = CELL // 8
         eye_offset = CELL // 4
-        pygame.draw.circle(screen, (0, 0, 0), (head.x * CELL + eye_offset, head.y * CELL + eye_offset), eye_size)
-        pygame.draw.circle(screen, (0, 0, 0), (head.x * CELL + CELL - eye_offset, head.y * CELL + eye_offset), eye_size)
+        pygame.draw.circle(screen, COLOR_BLACK, (head.x * CELL + eye_offset, head.y * CELL + eye_offset), eye_size)
+        pygame.draw.circle(screen, COLOR_BLACK, (head.x * CELL + CELL - eye_offset, head.y * CELL + eye_offset), eye_size)
         for segment in self.body[1:]:
-            pygame.draw.rect(screen, (70, 130, 180), (segment.x * CELL, segment.y * CELL, CELL, CELL))
+            pygame.draw.rect(screen, COLOR_SNAKE, (segment.x * CELL, segment.y * CELL, CELL, CELL))
 
-    # Check if the snake's head collides with its body
     def check_collision_with_self(self):
         head = self.body[0]
         return any(head.x == s.x and head.y == s.y for s in self.body[1:])
 
-    # Check if the snake hits the wall
     def check_collision_with_walls(self):
         head = self.body[0]
-        return head.x < 0 or head.x >= WIDTH // CELL or head.y < 0 or head.y >= HEIGHT // CELL
+        if head.x < 0 or head.x >= WIDTH // CELL or head.y < 0 or head.y >= HEIGHT // CELL:
+            return True
+        for wx, wy in coords_wall:
+            if head.x == wx and head.y == wy:
+                return True
+        return False
 
-    # Check if the snake eats food
     def check_collision(self, food):
         head = self.body[0]
         if head.x == food.pos.x and head.y == food.pos.y:
             for _ in range(food.weight):
-                self.body.append(Point(head.x, head.y))  # Extend body based on fruit weight
+                self.body.append(Point(head.x, head.y))
             food.generate_random_pos(self)
             return food.weight
         return 0
 
-    def check_collision_wall(self):
-        global collided_with_wall
-        head = self.body[0]
-        if head.x < 0 or head.x >= WIDTH // CELL or head.y < 0 or head.y >= HEIGHT // CELL:
-            collided_with_wall = True
-            return True
-        for coords in coords_wall:
-            if head.x == coords[0] and head.y == coords[1]:
-                collided_with_wall = True
-                return True
-        return False
-
-# Food class definition
+# Food class
 class Food:
     def __init__(self):
-        # Load images for different food types
         self.images = {
             "strawberry": pygame.image.load("/Users/rapiyatleukhan/Desktop/pp2/lab9/snake/strawberry.png"),
             "cherry": pygame.image.load("/Users/rapiyatleukhan/Desktop/pp2/lab9/snake/cherry.png"),
@@ -122,30 +109,28 @@ class Food:
         self.weight = 1
         self.generate_random_type()
         self.creation_time = time.time()
-        self.time_limit = 5  # seconds before food disappears
+        self.time_limit = 5
 
-    # Choose a random fruit type and set its weight and image
     def generate_random_type(self):
         fruit_type = random.choice(["strawberry", "cherry", "watermelon"])
         self.image = pygame.transform.scale(self.images[fruit_type], (CELL, CELL))
         self.weight = {"strawberry": 1, "cherry": 2, "watermelon": 3}[fruit_type]
 
-    # Draw the food on screen
     def draw(self):
         screen.blit(self.image, (self.pos.x * CELL, self.pos.y * CELL))
 
-    # Generate a new random position for the food that doesn't overlap with the snake
     def generate_random_pos(self, snake):
         while True:
             x = random.randint(0, WIDTH // CELL - 1)
             y = random.randint(0, HEIGHT // CELL - 1)
-            if all(segment.x != x or segment.y != y for segment in snake.body):
+            occupied = any(segment.x == x and segment.y == y for segment in snake.body)
+            on_wall = (x, y) in coords_wall
+            if not occupied and not on_wall:
                 self.pos = Point(x, y)
                 self.generate_random_type()
                 self.creation_time = time.time()
                 break
 
-    # Check if the food should disappear after a time limit
     def check_expiration(self):
         return time.time() - self.creation_time > self.time_limit
 
@@ -161,12 +146,10 @@ level = 1
 # === Main Game Loop ===
 running = True
 while running:
-    # Event handling for quitting and key presses
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
         if event.type == pygame.KEYDOWN:
-            # Movement controls (no 180-degree turns)
             if event.key == pygame.K_RIGHT and snake.dx == 0:
                 snake.dx = 1
                 snake.dy = 0
@@ -180,41 +163,31 @@ while running:
                 snake.dx = 0
                 snake.dy = -1
 
-    # Clear screen and draw grid
-    screen.fill((0, 0, 0))
-    draw_grid()
-
-    # Update snake position
+    screen.fill(COLOR_BLACK)
+    draw_board_with_walls()
     snake.move()
 
-    # Check for collisions (walls or self)
     if snake.check_collision_with_self() or snake.check_collision_with_walls():
         print("Game Over!")
         running = False
 
-    # Check for food collision and update score/level
     gained = snake.check_collision(food)
     if gained:
         score += gained
         if score % 10 == 0:
             level += 1
-            FPS += 1  # Increase speed with each level
+            FPS += 1
 
-    # If food expires, generate new one
     if food.check_expiration():
         food.generate_random_pos(snake)
 
-    # Draw everything
     snake.draw()
     food.draw()
 
-    # Show score and level
-    screen.blit(font.render(f"Score: {score}", True, (0, 0, 0)), (10, 10))
-    screen.blit(font.render(f"Level: {level}", True, (0, 0, 0)), (10, 40))
+    screen.blit(font.render(f"Score: {score}", True, COLOR_BLACK), (10, 10))
+    screen.blit(font.render(f"Level: {level}", True, COLOR_BLACK), (10, 40))
 
-    # Refresh display and tick clock
     pygame.display.flip()
     clock.tick(FPS)
 
-# Quit Pygame when game ends
 pygame.quit()

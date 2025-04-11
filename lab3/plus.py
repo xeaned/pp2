@@ -157,6 +157,7 @@ snake = Snake()
 food = Food()
 score = 0
 level = 1
+last_growth_time = time.time()  # <--- Добавлено для автоматического роста
 
 # === Main Game Loop ===
 running = True
@@ -186,6 +187,12 @@ while running:
 
     # Update snake position
     snake.move()
+
+    # Automatic growth every 5 seconds
+    if time.time() - last_growth_time >= 5:
+        tail = snake.body[-1]
+        snake.body.append(Point(tail.x, tail.y))
+        last_growth_time = time.time()
 
     # Check for collisions (walls or self)
     if snake.check_collision_with_self() or snake.check_collision_with_walls():
